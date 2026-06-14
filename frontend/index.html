@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Background glow objects for glassmorphism -->
@@ -90,15 +92,29 @@
                 </form>
             </section>
 
-            <!-- Right Panel: Estimation Results -->
+            <!-- Right Panel: Estimation Results & Model Explanations -->
             <section class="card results-panel" id="results-card">
+                <div class="tabs-header">
+                    <button type="button" class="tab-btn active" onclick="switchTab('valuation')">
+                        <i class="fa-solid fa-calculator"></i> Valuation
+                    </button>
+                    <button type="button" class="tab-btn" onclick="switchTab('metrics')">
+                        <i class="fa-solid fa-chart-simple"></i> Model Metrics
+                    </button>
+                    <button type="button" class="tab-btn" onclick="switchTab('importance')">
+                        <i class="fa-solid fa-key"></i> Key Drivers
+                    </button>
+                </div>
+
+                <!-- Empty State (shown if no valuation has been requested yet) -->
                 <div class="empty-state" id="empty-state">
                     <i class="fa-solid fa-chart-line-up"></i>
                     <h3>Ready for Valuation</h3>
-                    <p>Adjust the property details on the left and click "Estimate Value" to view the AI-generated price report.</p>
+                    <p>Adjust the property details on the left and click "Estimate Value" to view the AI-generated price report and model insights.</p>
                 </div>
 
-                <div class="results-content" id="results-content" style="display: none;">
+                <!-- Tab 1: Valuation Results -->
+                <div class="results-content tab-content" id="tab-valuation" style="display: none;">
                     <div class="valuation-header">
                         <h3>Estimated Value</h3>
                         <div class="price-container">
@@ -160,6 +176,70 @@
                                 <span class="item-value negative" id="bd-dist">-$0</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Model Performance Metrics -->
+                <div class="tab-content" id="tab-metrics" style="display: none;">
+                    <div class="tab-info-header">
+                        <h4>Model Comparison Metrics</h4>
+                        <p class="breakdown-desc">Compare the accuracy of our baseline Linear Regression vs. tuned Random Forest.</p>
+                    </div>
+                    <div class="metrics-table-wrapper">
+                        <table class="metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Linear Regression</th>
+                                    <th>Random Forest</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="tooltip" title="Higher is better. 1.0 represents a perfect fit.">R² Score (Accuracy)</span></td>
+                                    <td id="m-lr-r2">-</td>
+                                    <td id="m-rf-r2">-</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="tooltip" title="Average accuracy across 5 cross-validation folds.">CV R² Score (5-Fold)</span></td>
+                                    <td id="m-lr-cvr2">-</td>
+                                    <td id="m-rf-cvr2">-</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="tooltip" title="Average absolute deviation from actual prices.">MAE (Mean Absolute Error)</span></td>
+                                    <td id="m-lr-mae">-</td>
+                                    <td id="m-rf-mae">-</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="tooltip" title="Standard deviation of residuals. penalizes large errors.">RMSE (Root Mean Sq. Error)</span></td>
+                                    <td id="m-lr-rmse">-</td>
+                                    <td id="m-rf-rmse">-</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="tooltip" title="Average percentage error of predictions.">MAPE (Mean Pct. Error)</span></td>
+                                    <td id="m-lr-mape">-</td>
+                                    <td id="m-rf-mape">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="metrics-note">
+                        <p><i class="fa-solid fa-circle-info"></i> <strong>Note:</strong> Linear Regression performs slightly better in this case due to the purely additive nature of our synthetic data generator.</p>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Feature Importances (Key Drivers) -->
+                <div class="tab-content" id="tab-importance" style="display: none;">
+                    <div class="tab-info-header">
+                        <h4>Feature Key Drivers</h4>
+                        <p class="breakdown-desc">Relative influence of each feature on the Random Forest pricing model.</p>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="importance-chart"></canvas>
+                    </div>
+                    <div class="insights-box">
+                        <h5>💡 Model Insight</h5>
+                        <p id="insight-text">Loading insights...</p>
                     </div>
                 </div>
             </section>

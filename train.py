@@ -200,6 +200,27 @@ def train_and_evaluate(df, project_dir):
     
     print("\nFeature Importances (Random Forest):")
     print(feat_imp)
+    
+    # Save model metadata to JSON
+    import json
+    metadata = {
+        'best_rf_params': grid_search.best_params_,
+        'feature_importances': feat_imp.to_dict(),
+        'metrics': {}
+    }
+    for name, res in results.items():
+        metadata['metrics'][name] = {
+            'RMSE': float(res['RMSE']),
+            'MAE': float(res['MAE']),
+            'MAPE': float(res['MAPE']),
+            'R2': float(res['R2']),
+            'CV_R2_Mean': float(res['CV_R2_Mean'])
+        }
+    
+    metadata_path = os.path.join(project_dir, 'model_metadata.json')
+    with open(metadata_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, indent=4)
+    print(f"Model metadata saved to {metadata_path}")
 
 if __name__ == "__main__":
     # Paths

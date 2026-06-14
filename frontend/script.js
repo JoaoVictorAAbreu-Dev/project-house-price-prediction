@@ -23,7 +23,52 @@ function adjustValue(inputId, increment) {
     }
 }
 
-// Dynamic range slider display updates
+// Global Tab State and Variables
+let activeTab = 'valuation';
+let modelMetadata = null;
+let chartInstance = null;
+
+// Tab Switcher Lógica (Exposta Globalmente)
+function switchTab(tabId) {
+    const emptyState = document.getElementById('empty-state');
+    const valuationContent = document.getElementById('tab-valuation');
+    const priceVal = document.getElementById('price-val');
+    
+    // Update active tab button
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+        }
+    });
+
+    // Hide all tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+
+    activeTab = tabId;
+
+    if (tabId === 'valuation') {
+        const rawPriceText = priceVal.textContent.replace(/,/g, '');
+        const currentPriceVal = parseFloat(rawPriceText);
+        if (!currentPriceVal || currentPriceVal === 0) {
+            emptyState.style.display = 'flex';
+        } else {
+            emptyState.style.display = 'block';
+            valuationContent.style.display = 'block';
+        }
+    } else {
+        emptyState.style.display = 'none';
+        const targetTab = document.getElementById('tab-' + tabId);
+        if (targetTab) {
+            targetTab.style.display = 'block';
+        }
+    }
+}
+window.switchTab = switchTab;
+
+// Dynamic range slider display updates and setup
 document.addEventListener('DOMContentLoaded', () => {
     const sqftSlider = document.getElementById('sqft_living');
     const sqftVal = document.getElementById('sqft-val');
@@ -48,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPredict = document.getElementById('btn-predict');
     const btnLoader = btnPredict.querySelector('.btn-loader');
     const emptyState = document.getElementById('empty-state');
-    const resultsContent = document.getElementById('results-content');
+    const valuationContent = document.getElementById('tab-valuation');
     const priceVal = document.getElementById('price-val');
     
     // Breakdown DOM references
@@ -90,9 +135,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
 
-            // Hide Empty State and Show Results
-            emptyState.style.display = 'none';
-            resultsContent.style.display = 'block';
+            // Handle showing correct valuation tab structure
+            if (activeTab === 'valuation') {
+                emptyState.style.display = 'none';
+                valuationContent.style.display = 'block';
+            }
 
             // Animate Price Valuation Count-Up
             const startPrice = 0;
@@ -121,6 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
             btnPredict.querySelector('span').textContent = 'Estimate Value';
         }
     });
+
+    // Load Model metadata on initial load
+    loadModelInfo();
 });
 
 // Helper: Toggle positive/negative CSS classes for styling
@@ -154,4 +204,132 @@ function animatePrice(obj, start, end, duration) {
         
         obj.textContent = Math.round(current).toLocaleString('en-US');
     }, stepTime);
+}
+
+// Fetch model metadata and populate tables/charts
+async function loadModelInfo() {
+    try {
+        const response = await fetch('/model_info');
+        if (!response.ok) throw new Error('Failed to load model metadata.');
+        modelMetadata = await response.json();
+        
+        populateMetricsTable(modelMetadata.metrics);
+        renderImportanceChart(modelMetadata.feature_importances);
+        generateInsightText(modelMetadata.feature_importances);
+    } catch (err) {
+        console.error('Error loading model metadata:', err);
+        document.getElementById('insight-text').textContent = 'Could not load model explainability insights. Make sure model_metadata.json is generated.';
+    }
+}
+
+// Populate model metrics comparison table
+function populateMetricsTable(metrics) {
+    const lr = metrics['Linear Regression'];
+    const rf = metrics['Random Forest'];
+    
+    document.getElementById('m-lr-r2').textContent = lr.R2.toFixed(4);
+    document.getElementById('m-rf-r2').textContent = rf.R2.toFixed(4);
+    
+    document.getElementById('m-lr-cvr2').textContent = lr.CV_R2_Mean.toFixed(4);
+    document.getElementById('m-rf-cvr2').textContent = rf.CV_R2_Mean.toFixed(4);
+    
+    document.getElementById('m-lr-mae').textContent = '$' + Math.round(lr.MAE).toLocaleString();
+    document.getElementById('m-rf-mae').textContent = '$' + Math.round(rf.MAE).toLocaleString();
+    
+    document.getElementById('m-lr-rmse').textContent = '$' + Math.round(lr.RMSE).toLocaleString();
+    document.getElementById('m-rf-rmse').textContent = '$' + Math.round(rf.RMSE).toLocaleString();
+    
+    document.getElementById('m-lr-mape').textContent = lr.MAPE.toFixed(2) + '%';
+    document.getElementById('m-rf-mape').textContent = rf.MAPE.toFixed(2) + '%';
+}
+
+// Render dynamic Chart.js Feature Importances Chart
+function renderImportanceChart(importances) {
+    const ctx = document.getElementById('importance-chart').getContext('2d');
+    
+    // Feature translations for labels
+    const labelMap = {
+        'sqft_living': 'Living Area (sqft)',
+        'distance_to_center_km': 'Distance to Center (km)',
+        'bedrooms': 'Bedrooms',
+        'bathrooms': 'Bathrooms',
+        'age_years': 'Property Age'
+    };
+
+    // Sort features by importance
+    const sortedFeatures = Object.entries(importances).sort((a, b) => b[1] - a[1]);
+    const labels = sortedFeatures.map(item => labelMap[item[0]] || item[0]);
+    const data = sortedFeatures.map(item => item[1]);
+
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: 'rgba(0, 242, 254, 0.25)',
+                borderColor: '#00f2fe',
+                borderWidth: 1.5,
+                borderRadius: 8,
+                hoverBackgroundColor: 'rgba(0, 242, 254, 0.45)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Importance: ${(context.raw * 100).toFixed(1)}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#9ca3af', font: { family: 'Outfit', size: 11 } }
+                },
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { 
+                        color: '#9ca3af', 
+                        font: { family: 'Outfit', size: 10 },
+                        callback: function(value) {
+                            return (value * 100).toFixed(0) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Generate model explainability insights text
+function generateInsightText(importances) {
+    let topFeature = '';
+    let topVal = 0;
+    for (const [key, val] of Object.entries(importances)) {
+        if (val > topVal) {
+            topVal = val;
+            topFeature = key;
+        }
+    }
+    
+    const featureNamesEN = {
+        'sqft_living': 'Living Area (sqft_living)',
+        'distance_to_center_km': 'Distance to Center (distance_to_center_km)',
+        'bedrooms': 'Number of Bedrooms (bedrooms)',
+        'bathrooms': 'Number of Bathrooms (bathrooms)',
+        'age_years': 'Property Age (age_years)'
+    };
+    
+    const topName = featureNamesEN[topFeature] || topFeature;
+    document.getElementById('insight-text').innerHTML = `The most influential feature in the price prediction model is <strong>${topName}</strong>, driving <strong>${(topVal * 100).toFixed(1)}%</strong> of the model's decisions. Living space and location factors combined account for over 75% of the Random Forest's pricing formula.`;
 }

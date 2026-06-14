@@ -1,0 +1,30 @@
+{
+    "best_rf_params": {
+        "max_depth": 10,
+        "min_samples_split": 2,
+        "n_estimators": 150
+    },
+    "feature_importances": {
+        "sqft_living": 0.5999887729319243,
+        "distance_to_center_km": 0.1604061397753062,
+        "bedrooms": 0.08436500018436563,
+        "bathrooms": 0.07841890114776644,
+        "age_years": 0.07682118596063735
+    },
+    "metrics": {
+        "Linear Regression": {
+            "RMSE": 22646.50397479658,
+            "MAE": 17368.43684169444,
+            "MAPE": 5.462189228356986,
+            "R2": 0.916519671342459,
+            "CV_R2_Mean": 0.9034146785448097
+        },
+        "Random Forest": {
+            "RMSE": 27610.436266266766,
+            "MAE": 22014.612841483104,
+            "MAPE": 6.900764784629007,
+            "R2": 0.8759124093299319,
+            "CV_R2_Mean": 0.8485865634877838
+        }
+    }
+}

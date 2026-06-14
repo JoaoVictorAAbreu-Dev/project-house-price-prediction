@@ -88,6 +88,23 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+@app.route('/model_info', methods=['GET'])
+def model_info():
+    """Returns model metrics and feature importances from metadata JSON."""
+    metadata_path = os.path.join(project_dir, 'model_metadata.json')
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                import json
+                metadata = json.load(f)
+                return jsonify(metadata)
+        except Exception as e:
+            return jsonify({'error': f'Failed to read metadata: {str(e)}'}), 500
+    else:
+        return jsonify({
+            'error': 'Metadata file not found. Please train the model first.'
+        }), 404
+
 if __name__ == '__main__':
     # Run server on port 5000
     print("Starting Flask server at http://127.0.0.1:5000/")
