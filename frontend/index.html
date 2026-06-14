@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House Value Predictor - AI Smart Valuation</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background glow objects for glassmorphism -->
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-house-laptop"></i>
+                <span>Antigravity<span class="highlight">Estates</span></span>
+            </div>
+            <h1>AI-Powered House Price Valuation</h1>
+            <p class="subtitle">Estimate property values with precision using our advanced machine learning models</p>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- Left Panel: Input Controls -->
+            <section class="card control-panel">
+                <h2><i class="fa-solid fa-sliders"></i> Property Details</h2>
+                <form id="predictor-form">
+                    <!-- Sqft Living -->
+                    <div class="input-group">
+                        <div class="input-header">
+                            <label for="sqft_living"><i class="fa-solid fa-maximize"></i> Living Space (sqft)</label>
+                            <span class="value-display" id="sqft-val">1,800</span>
+                        </div>
+                        <input type="range" id="sqft_living" name="sqft_living" min="500" max="5000" step="50" value="1800">
+                    </div>
+
+                    <!-- Bedrooms -->
+                    <div class="input-row">
+                        <div class="input-group half">
+                            <label for="bedrooms"><i class="fa-solid fa-bed"></i> Bedrooms</label>
+                            <div class="counter-input">
+                                <button type="button" class="btn-counter" onclick="adjustValue('bedrooms', -1)">-</button>
+                                <input type="number" id="bedrooms" name="bedrooms" min="1" max="10" value="3" readonly>
+                                <button type="button" class="btn-counter" onclick="adjustValue('bedrooms', 1)">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Bathrooms -->
+                        <div class="input-group half">
+                            <label for="bathrooms"><i class="fa-solid fa-bath"></i> Bathrooms</label>
+                            <div class="counter-input">
+                                <button type="button" class="btn-counter" onclick="adjustValue('bathrooms', -0.5)">-</button>
+                                <input type="number" id="bathrooms" name="bathrooms" min="1" max="6" step="0.5" value="2.0" readonly>
+                                <button type="button" class="btn-counter" onclick="adjustValue('bathrooms', 0.5)">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Age of House -->
+                    <div class="input-group">
+                        <div class="input-header">
+                            <label for="age_years"><i class="fa-solid fa-calendar-days"></i> Age of Property (years)</label>
+                            <span class="value-display" id="age-val">10</span>
+                        </div>
+                        <input type="range" id="age_years" name="age_years" min="0" max="80" step="1" value="10">
+                    </div>
+
+                    <!-- Distance to Center -->
+                    <div class="input-group">
+                        <div class="input-header">
+                            <label for="distance_to_center_km"><i class="fa-solid fa-map-pin"></i> Distance to Center (km)</label>
+                            <span class="value-display" id="dist-val">5.0</span>
+                        </div>
+                        <input type="range" id="distance_to_center_km" name="distance_to_center_km" min="0.5" max="50" step="0.5" value="5.0">
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btn-predict">
+                        <span>Estimate Value</span>
+                        <i class="fa-solid fa-circle-notch fa-spin btn-loader" style="display: none;"></i>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Right Panel: Estimation Results -->
+            <section class="card results-panel" id="results-card">
+                <div class="empty-state" id="empty-state">
+                    <i class="fa-solid fa-chart-line-up"></i>
+                    <h3>Ready for Valuation</h3>
+                    <p>Adjust the property details on the left and click "Estimate Value" to view the AI-generated price report.</p>
+                </div>
+
+                <div class="results-content" id="results-content" style="display: none;">
+                    <div class="valuation-header">
+                        <h3>Estimated Value</h3>
+                        <div class="price-container">
+                            <span class="price-symbol">$</span>
+                            <span class="price-value" id="price-val">0</span>
+                        </div>
+                        <p class="valuation-meta">Based on Random Forest Regressor Model</p>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="valuation-breakdown">
+                        <h4>Valuation Breakdown</h4>
+                        <p class="breakdown-desc">See how each property attribute impacts the baseline price.</p>
+                        
+                        <div class="breakdown-list">
+                            <!-- Base Value -->
+                            <div class="breakdown-item">
+                                <div class="item-info">
+                                    <span class="item-name">Baseline Value</span>
+                                    <span class="item-desc">Starting point for housing model</span>
+                                </div>
+                                <span class="item-value positive">+$100,000</span>
+                            </div>
+
+                            <!-- Size Effect -->
+                            <div class="breakdown-item">
+                                <div class="item-info">
+                                    <span class="item-name">Living Space Effect</span>
+                                    <span class="item-desc">Sqft Living Size contribution</span>
+                                </div>
+                                <span class="item-value positive" id="bd-size">+$0</span>
+                            </div>
+
+                            <!-- Rooms Effect -->
+                            <div class="breakdown-item">
+                                <div class="item-info">
+                                    <span class="item-name">Rooms & Bathrooms</span>
+                                    <span class="item-desc">Total bedrooms/bathrooms score</span>
+                                </div>
+                                <span class="item-value positive" id="bd-rooms">+$0</span>
+                            </div>
+
+                            <!-- Age Effect -->
+                            <div class="breakdown-item">
+                                <div class="item-info">
+                                    <span class="item-name">Age Depreciation</span>
+                                    <span class="item-desc">Loss in value over years</span>
+                                </div>
+                                <span class="item-value negative" id="bd-age">-$0</span>
+                            </div>
+
+                            <!-- Distance Effect -->
+                            <div class="breakdown-item">
+                                <div class="item-info">
+                                    <span class="item-name">Location/Distance Factor</span>
+                                    <span class="item-desc">Distance to nearest city center</span>
+                                </div>
+                                <span class="item-value negative" id="bd-dist">-$0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Antigravity Estates Inc. Powered by Python, Flask & Scikit-Learn.</p>
+        </footer>
+    </div>
+
+    <!-- Script -->
+    <script src="script.js"></script>
+</body>
+</html>
