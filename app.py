@@ -1,8 +1,7 @@
 import os
-import sys
 import joblib
 import pandas as pd
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 
 app = Flask(__name__, static_folder='frontend', static_url_path='')
 
@@ -27,6 +26,42 @@ def index():
     """Serves the main frontend page."""
     return app.send_static_file('index.html')
 
+def _get_json_payload():
+    payload = request.get_json(silent=True)
+    if payload is None:
+        return None, (jsonify({'error': 'Request body must be valid JSON.'}), 400)
+    return payload, None
+
+
+def _build_features(data):
+    try:
+        sqft_living = float(data.get('sqft_living', 1800))
+        bedrooms = int(data.get('bedrooms', 3))
+        bathrooms = float(data.get('bathrooms', 2))
+        age_years = float(data.get('age_years', 10))
+        distance_to_center_km = float(data.get('distance_to_center_km', 5))
+    except (TypeError, ValueError):
+        return None, (jsonify({'error': 'All features must be numeric values.'}), 400)
+
+    if sqft_living <= 0 or bedrooms < 0 or bathrooms < 0 or age_years < 0 or distance_to_center_km < 0:
+        return None, (jsonify({'error': 'All features must be positive numbers.'}), 400)
+
+    features = pd.DataFrame({
+        'sqft_living': [sqft_living],
+        'bedrooms': [bedrooms],
+        'bathrooms': [bathrooms],
+        'age_years': [age_years],
+        'distance_to_center_km': [distance_to_center_km]
+    })
+    return (features, {
+        'sqft_living': sqft_living,
+        'bedrooms': bedrooms,
+        'bathrooms': bathrooms,
+        'age_years': age_years,
+        'distance_to_center_km': distance_to_center_km
+    }), None
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     """Handles price prediction requests."""
@@ -42,27 +77,15 @@ def predict():
             return jsonify({'error': 'Model file not found. Please train the model first.'}), 500
 
     try:
-        data = request.get_json()
-        
-        # Extract and validate features
-        sqft_living = float(data.get('sqft_living', 1800))
-        bedrooms = int(data.get('bedrooms', 3))
-        bathrooms = float(data.get('bathrooms', 2))
-        age_years = float(data.get('age_years', 10))
-        distance_to_center_km = float(data.get('distance_to_center_km', 5))
-        
-        # Verify inputs are within sensible boundaries
-        if sqft_living <= 0 or bedrooms < 0 or bathrooms < 0 or age_years < 0 or distance_to_center_km < 0:
-            return jsonify({'error': 'All features must be positive numbers.'}), 400
+        data, error_response = _get_json_payload()
+        if error_response:
+            return error_response
 
-        # Create DataFrame matching training feature names
-        features = pd.DataFrame({
-            'sqft_living': [sqft_living],
-            'bedrooms': [bedrooms],
-            'bathrooms': [bathrooms],
-            'age_years': [age_years],
-            'distance_to_center_km': [distance_to_center_km]
-        })
+        features_result, error_response = _build_features(data)
+        if error_response:
+            return error_response
+
+        features, feature_values = features_result
         
         # Predict
         prediction = model.predict(features)[0]
@@ -74,10 +97,10 @@ def predict():
         # age_coeff = -800, distance_coeff = -3000
         breakdown = {
             'base_value': 100000,
-            'size_contribution': sqft_living * 120,
-            'rooms_contribution': (bedrooms * 15000) + (bathrooms * 25000),
-            'age_depreciation': -age_years * 800,
-            'location_effect': -distance_to_center_km * 3000
+            'size_contribution': feature_values['sqft_living'] * 120,
+            'rooms_contribution': (feature_values['bedrooms'] * 15000) + (feature_values['bathrooms'] * 25000),
+            'age_depreciation': -feature_values['age_years'] * 800,
+            'location_effect': -feature_values['distance_to_center_km'] * 3000
         }
         
         return jsonify({
@@ -106,6 +129,8 @@ def model_info():
         }), 404
 
 if __name__ == '__main__':
-    # Run server on port 5000
-    print("Starting Flask server at http://127.0.0.1:5000/")
-    app.run(debug=True, port=5000)
+    host = os.getenv('HOST', '127.0.0.1')
+    port = int(os.getenv('PORT', '5000'))
+    debug = os.getenv('FLASK_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
+    print(f"Starting Flask server at http://{host}:{port}/")
+    app.run(debug=debug, host=host, port=port)
