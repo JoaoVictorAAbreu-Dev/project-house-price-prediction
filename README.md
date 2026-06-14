@@ -6,7 +6,7 @@ Além do pipeline de modelagem, o projeto inclui uma ferramenta interativa de li
 
 ---
 
-## 🚀 Estrutura do Projeto
+## Estrutura do Projeto
 
 O repositório está organizado da seguinte forma:
 
@@ -27,7 +27,7 @@ O repositório está organizado da seguinte forma:
 
 ---
 
-## 📊 Dicionário de Variáveis (Features)
+## Dicionário de Variáveis (Features)
 
 | Variável | Tipo | Descrição |
 | :--- | :--- | :--- |
@@ -40,7 +40,7 @@ O repositório está organizado da seguinte forma:
 
 ---
 
-## 📈 Modelagem e Resultados
+## Modelagem e Resultados
 
 Duas abordagens de Machine Learning foram avaliadas e comparadas:
 
@@ -128,11 +128,11 @@ Para rodar a interface web sofisticada em sua máquina local:
 python app.py
 ```
 Após iniciar o servidor, abra o navegador e acesse:
-👉 **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
+ **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
 
 ---
 
-## 💻 Tecnologias Empregadas
+## Tecnologias Empregadas
 
 - **Linguagem Principal**: Python 3.11+
 - **Machine Learning**: Scikit-Learn
